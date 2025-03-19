@@ -12,7 +12,6 @@ const userSchema = new mongoose.Schema(
       isConnected: Boolean,
       // Any other session-specific data
     },
-
     userId: {
       type: String,
       required: true,

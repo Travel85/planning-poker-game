@@ -18,7 +18,7 @@ const adminPage = require("./routes/adminPage");
 
 // Configure session middleware
 const sessionMiddleware = session({
-  name: "session_id", // Custom session ID name
+  name: "sessionId", // Custom session ID name
   secret: process.env.SESSION_SECRET || "your-secret-string",
   resave: true,
   saveUninitialized: true,
