@@ -7,6 +7,12 @@ const userSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    sessionData: {
+      lastActive: Date,
+      isConnected: Boolean,
+      // Any other session-specific data
+    },
+
     userId: {
       type: String,
       required: true,

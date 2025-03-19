@@ -12,8 +12,23 @@ const fs = require("fs");
 const path = require("path");
 const connectDB = require("./connectDB");
 const UserSessionEntry = require("./models/userSession");
+const session = require("express-session");
 
 const adminPage = require("./routes/adminPage");
+
+// Configure session middleware
+const sessionMiddleware = session({
+  name: "session_id", // Custom session ID name
+  secret: process.env.SESSION_SECRET || "your-secret-string",
+  resave: true,
+  saveUninitialized: true,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 1000 * 60 * 60 * 24, // 1 day
+  },
+});
+app.use(sessionMiddleware);
 
 const logPath = "./logs";
 fs.mkdirSync(logPath, { recursive: true });
@@ -49,11 +64,7 @@ app.use((req, res, next) => {
 const io = new Server(httpServer, {
   /* options */
   path: "/api/session/",
-  cors: {
-    origin: `${process.env.FRONTEND_URL}`,
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
+  cors: corsOptions,
   // connectionStateRecovery: {
   //   // the backup duration of the sessions and the packets
   //   maxDisconnectionDuration: 2 * 60 * 1000,
@@ -61,6 +72,9 @@ const io = new Server(httpServer, {
   //   skipMiddlewares: true,
   // },
 });
+
+// Share session context with Socket.IO
+io.engine.use(sessionMiddleware);
 
 // Call the connection function to connect to Mongo DB
 connectDB();
@@ -80,9 +94,17 @@ io.on("connection", (socket) => {
   console.log("a user connected with ID" + socket.id);
   winstonLogger.info(`a user connected with ID ${socket.id}`);
 
-  //list to emit from frontend to create a new session id
-  socket.on("createSessionId", () => {
-    const sessionId = uuidv4();
+  //listen to emit from frontend to create a new session id
+  socket.on("createSessionId", async () => {
+    // Get the session from express-session
+    const session = socket.request.session;
+    console.log(`New session ${session} created`);
+    winstonLogger.info(`New session ${session} created`);
+
+    // Use express-session's ID instead of generating a new one
+    const sessionId = session.id;
+    await session.save();
+    //const sessionId = uuidv4();
     console.log(`sessionId generated with Id: ${sessionId}`);
     winstonLogger.info(`sessionId generated with Id: ${sessionId}`);
     socket.emit("sessionIdGenerated", { sessionId: sessionId });
